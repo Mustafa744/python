@@ -50,6 +50,11 @@ def correct_black(contours):
         return cnt
 
 
+def rotateImage(image, angle):
+    image_center = tuple(np.array(image.shape[1::-1]) / 2)
+    rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+    result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
+    return result
 
 
 def motor(speed, steering):
@@ -95,7 +100,7 @@ def check_green():
     kernel = np.ones((3, 3), np.uint8)
     greenmark = cv2.erode(greenmark, kernel, iterations=3)
     greenmark = cv2.dilate(greenmark, kernel, iterations=9)
-    contours_green, hierarchy_green = cv2.findContours(greenmark, cv2.RETR_TREE,
+    img_green, contours_green, hierarchy_green = cv2.findContours(greenmark, cv2.RETR_TREE,
                                                                   cv2.CHAIN_APPROX_SIMPLE)
     #cv2.drawContours(blank_image, contours_green, -1, (0, 255, 0), 10)
 
@@ -143,7 +148,7 @@ while successful:
     Blackline = cv2.inRange(image, low_black, high_black)
     Blackline = cv2.erode(Blackline, kernel, iterations=2)
     Blackline = cv2.dilate(Blackline, kernel, iterations=3)
-    contours_blk, hierarchy_blk = cv2.findContours(Blackline, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    img_blk, contours_blk, hierarchy_blk = cv2.findContours(Blackline, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     line = correct_black(contours_blk)
     if line is not None:
@@ -236,7 +241,9 @@ while successful:
         pass
         #stop
 
-
+    if count>500:
+        finish=time.time()
+        break
     #cv2.imshow("orginal with line", image)
     #cv2.imshow("black", blank_image)
 
@@ -248,6 +255,6 @@ while successful:
         break
         cv2.destroyAllWindows()'''
 
-fps = count #/ (finish - start)
+fps = count/(finish - start)
 print("fps=  ", fps)
 exit()
