@@ -50,11 +50,6 @@ def correct_black(contours):
         return cnt
 
 
-def rotateImage(image, angle):
-    image_center = tuple(np.array(image.shape[1::-1]) / 2)
-    rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
-    result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
-    return result
 
 
 def motor(speed, steering):
@@ -74,7 +69,7 @@ def motor(speed, steering):
 
 
 
-cap = cv2.VideoCapture(0)
+#cap = cv2.VideoCapture(0)
 #cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
 #cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 def correct_green(points):
