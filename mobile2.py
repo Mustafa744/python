@@ -189,7 +189,7 @@ while successful:
             ang = 90 + ang
         else:
             pass
-        error = int(cx) - x_offset
+        error = int(x_min) - x_offset
 
         if width >= x_offset * 2 - 3 or height >= y_offset * 2 - 3:
             length_green = check_green()
@@ -231,21 +231,8 @@ while successful:
         r, l = motor(100, error * factA + ang*factE)
 
         #print(l, "   ", r,"  ", ang,"  ",error)
-        draw_bar(int(cx/5),50)
+        draw_bar(int(x_min/5),50)
 
-
-"""if r > 50 and l > 50:
-            print("forward")
-
-        elif r > l:
-            print("left")
-        elif l > r:
-            print("right")"""
-
-
-"""f count>500:
-        finish=time.time()
-        break"""
 
 
 #fps = count/(finish - start)
