@@ -1,13 +1,13 @@
 import time
 import cv2
 import numpy as np
-import os
 import urllib.request
 url = "http://192.168.1.3:8080/shot.jpg"
 
-server_url='http://192.168.1.11:1234/garagedoor/'
 
-drawing=1
+r=0
+l=0
+server_url='http://192.168.1.11:1234/garagedoor/'
 
 last_move = ""
 successful = 1
@@ -17,8 +17,8 @@ out = fourcc = 0
 
 state = ""
 ang = 0
-x_offset = 120
-y_offset = 160
+x_offset = 160
+y_offset = 120
 leftmost=(0,0)
 rightmost=(319,0)
 topmost=(100,0)
@@ -35,16 +35,16 @@ low_green = np.array([161, 155, 84])
 high_green = np.array([179, 255, 255])
 
 
-def draw_bar(position,length):
-    bar=[]
+def draw_bar(position, length):
+    bar = []
     for i in range(length):
         bar.append("_")
-    os.system('cls')
+
     print("\n")
-    bar[int(position)-1]="O"
+    bar[int(position) - 1] = "O"
     for char in bar:
-        print(char,end="")
-    bar[int(position)-1]="_"
+        print(char, end="")
+    bar[int(position) - 1] = "_"
 
 
 def correct_black(contours):
@@ -61,7 +61,7 @@ def correct_black(contours):
                 suspects.append([bottommost[1], index])
             suspects.sort()
             selection = suspects[-1][1]
-        #cv2.drawContours(blank_image, contours_blk, selection, (255, 255, 255), 10)
+        cv2.drawContours(blank_image, contours_blk, selection, (255, 255, 255), 10)
         cnt = contours_blk[selection]
 
         return cnt
@@ -87,11 +87,24 @@ def motor(speed, steering):
         steering = 100 - steering
         port1 = speed
         port2 = speed * steering / 100
+    if abs(port1)>100:
+        if port1 >0 :
+            port1=100
+        else :
+            port1=-100
+    if abs(port2)>100:
+        if port2 >0 :
+            port2=100
+        else :
+            port2=-100
+
     return int(port1), int(port2)
 
 
 
-
+#cap = cv2.VideoCapture(0)
+#cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+#cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 def correct_green(points):
     correct_points = []
     if points is not None:
@@ -113,11 +126,11 @@ def check_green():
     hsv_frame = cv2.cvtColor(image_raw, cv2.COLOR_BGR2HSV)
     greenmark = cv2.inRange(hsv_frame, low_green, high_green)
     kernel = np.ones((3, 3), np.uint8)
-    greenmark = cv2.erode(greenmark, kernel, iterations=3)
-    greenmark = cv2.dilate(greenmark, kernel, iterations=9)
+    greenmark = cv2.erode(greenmark, kernel, iterations=5)
+    greenmark = cv2.dilate(greenmark, kernel, iterations=3)
     contours_green, hierarchy_green = cv2.findContours(greenmark, cv2.RETR_TREE,
                                                                   cv2.CHAIN_APPROX_SIMPLE)
-
+    #cv2.drawContours(blank_image, contours_green, -1, (0, 255, 0), 10)
 
     if len(contours_green) > 2:
         contours_green = [contours_green[0], contours_green[1]]
@@ -127,7 +140,7 @@ def check_green():
         cy = int(M['m01'] / M['m00'])
         points.append((cx, cy))
     new_points = correct_green(points)
-
+    # cv2.imshow("green", blank_image2)"""
     return len(new_points), new_points
 
 
@@ -135,8 +148,7 @@ count = 0
 start = time.time()
 center = 160
 ang=0
-
-
+#ret, image_raw = cap.read()
 imgResp = urllib.request.urlopen(url)
 imgNp = np.array(bytearray(imgResp.read()), dtype=np.uint8)
 image_raw = cv2.imdecode(imgNp, -1)
@@ -144,19 +156,23 @@ image_raw=image_raw[1:-1,1:-1]
 
 while successful:
     # black blank image
-    blank_image = np.zeros(shape=[320, 320, 3], dtype=np.uint8)
+    blank_image = np.zeros(shape=[240, 320, 3], dtype=np.uint8)
+
+    #image_raw = image_raw[0:400, :] #height widthx
+
+
     imgResp = urllib.request.urlopen(url)
     imgNp = np.array(bytearray(imgResp.read()), dtype=np.uint8)
     image_raw = cv2.imdecode(imgNp, -1)
-    image_raw = image_raw[1:238, :]
-    
+    print(image_raw.shape)
+    image_raw = image_raw[1:238,:]
+
     count = count + 1
     image = np.array(image_raw)
 
     Blackline = cv2.inRange(image, low_black, high_black)
-    Blackline = cv2.erode(Blackline, kernel, iterations=2)
-    Blackline = cv2.dilate(Blackline, kernel, iterations=3)
-    
+    Blackline = cv2.erode(Blackline, kernel, iterations=4)
+    Blackline = cv2.dilate(Blackline, kernel, iterations=1)
     contours_blk, hierarchy_blk = cv2.findContours(Blackline, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     line = correct_black(contours_blk)
@@ -164,10 +180,6 @@ while successful:
 
         rect = cv2.minAreaRect(line)
         (x_min, y_min), (w_min, h_min), ang = rect
-        M = cv2.moments(line)
-        cx = int(M['m10'] / M['m00'])
-        cy = int(M['m01'] / M['m00'])
-
 
 
 
@@ -191,48 +203,29 @@ while successful:
             pass
         error = int(x_min) - x_offset
 
-        if width >= x_offset * 2 - 3 or height >= y_offset * 2 - 3:
-            length_green = check_green()
-            if length_green[0] != 0:
-                print("possible intersection")
-                if length_green[0] ==2:
-                    print("turn arround")
-                    ang=0
-                    error=-250
-                else :
-                    green_square=length_green[1][0]
-                    if green_square[0]>cx :
-                        print("intersection right")
-                        ang=0
-                        error=190
-                    elif green_square[0]<cx :
-                        print("intersection left")
-                        ang = 0
-                        error = -190
-            else:
-                length_green=None
-        if topmost[1]>30:
-            #print("angle detected " + state)
-            if error < -20:
-                state = "sharp-left"
-                last_move = "l"
-                ang=0
-                error=-190
-            elif error > 20:
-                state = "sharp-right"
-                last_move = "r"
-                ang = 0
-                error = 190
-            else:
-                state = last_move
 
 
+        if topmost[1] > 50 :
+            print("something wrong ",end=" ")
+            error*=10
 
         r, l = motor(100, error * factA + ang*factE)
+        html = urllib.request.urlopen(server_url + str(l) + ',' + str(r))
+
+        draw_bar(x_min/6.5, 50)
+
+        #print(l, "   ", r)
 
 
-        draw_bar(int(x_min/5),50)
+    else :
+        r, l = motor(100, error * 5 + ang * factE)
         html = urllib.request.urlopen(server_url + str(l) + ',' + str(r))
 
 
+
 exit()
+
+
+
+
+
