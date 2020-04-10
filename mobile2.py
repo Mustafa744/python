@@ -4,6 +4,9 @@ import numpy as np
 import os
 import urllib.request
 url = "http://192.168.1.3:8080/shot.jpg"
+
+server_url='http://192.168.1.11:1234/garagedoor/'
+
 drawing=1
 
 last_move = ""
@@ -112,7 +115,7 @@ def check_green():
     kernel = np.ones((3, 3), np.uint8)
     greenmark = cv2.erode(greenmark, kernel, iterations=3)
     greenmark = cv2.dilate(greenmark, kernel, iterations=9)
-    __ ,contours_green, hierarchy_green = cv2.findContours(greenmark, cv2.RETR_TREE,
+    contours_green, hierarchy_green = cv2.findContours(greenmark, cv2.RETR_TREE,
                                                                   cv2.CHAIN_APPROX_SIMPLE)
 
 
@@ -145,19 +148,16 @@ while successful:
     imgResp = urllib.request.urlopen(url)
     imgNp = np.array(bytearray(imgResp.read()), dtype=np.uint8)
     image_raw = cv2.imdecode(imgNp, -1)
-
-
-
-
+    image_raw = image_raw[1:238, :]
+    
     count = count + 1
     image = np.array(image_raw)
-
-    #image = cv2.resize(image, None, fx=1.333, fy=1, interpolation=cv2.INTER_CUBIC)
 
     Blackline = cv2.inRange(image, low_black, high_black)
     Blackline = cv2.erode(Blackline, kernel, iterations=2)
     Blackline = cv2.dilate(Blackline, kernel, iterations=3)
-    __, contours_blk, hierarchy_blk = cv2.findContours(Blackline, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    
+    contours_blk, hierarchy_blk = cv2.findContours(Blackline, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     line = correct_black(contours_blk)
     if line is not None:
@@ -230,11 +230,9 @@ while successful:
 
         r, l = motor(100, error * factA + ang*factE)
 
-        #print(l, "   ", r,"  ", ang,"  ",error)
+
         draw_bar(int(x_min/5),50)
+        html = urllib.request.urlopen(server_url + str(l) + ',' + str(r))
 
 
-
-#fps = count/(finish - start)
-#print("fps=  ", fps)
 exit()
